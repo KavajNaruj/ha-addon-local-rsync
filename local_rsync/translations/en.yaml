@@ -1,16 +1,1 @@
-configuration:
-  source:
-    name: Source path
-    description: Source folder under `/share` or `/media`
-  destination:
-    name: Destination path
-    description: Destination folder under `/share` or `/media`
-  run_mode:
-    name: Run mode
-    description: Choose whether the add-on runs once or on a fixed interval
-  schedule_minutes:
-    name: Schedule minutes
-    description: Minutes between sync runs when interval mode is enabled
-  args:
-    name: Rsync arguments
-    description: Raw rsync flags, for example `-a --delete --progress`
+configuration: {}

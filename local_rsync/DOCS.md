@@ -37,24 +37,26 @@ Examples:
 ## Configuration
 
 ```yaml
-source: /share/source/
-destination: /share/backup/
 run_mode: once
 schedule_minutes: 60
-args: "-rt --size-only --modify-window=2 --exclude thumbs --exclude encoded-video"
+jobs:
+  - source: /share/source/
+    destination: /share/backup/
+    args: "-rt --size-only --modify-window=2 --exclude thumbs --exclude encoded-video"
 ```
 
 ## Option reference
 
-- `source`: source folder under `/share` or `/media`
-- `destination`: destination folder under `/share` or `/media`
 - `run_mode`: `once` or `interval`
 - `schedule_minutes`: sync interval when `run_mode` is `interval`
-- `args`: raw rsync arguments, for example `-a --delete --progress`
+- `jobs`: array of sync jobs
+- `jobs[].source`: source folder under `/share` or `/media`
+- `jobs[].destination`: destination folder under `/share` or `/media`
+- `jobs[].args`: raw rsync arguments, for example `-a --delete --progress`
 
 ## Trailing slash behavior
 
-If you set `source` or `destination` with a trailing `/`, the add-on preserves it
+If you set `jobs[].source` or `jobs[].destination` with a trailing `/`, the add-on preserves it
 when executing `rsync`. This matters because rsync treats these forms differently.
 
 ## Examples
@@ -62,41 +64,59 @@ when executing `rsync`. This matters because rsync treats these forms differentl
 Copy media to backup:
 
 ```yaml
-source: /share/media/
-destination: /share/backup/media/
 run_mode: once
 schedule_minutes: 60
-args: "-a --progress --verbose --human-readable --itemize-changes"
+jobs:
+  - source: /share/media/
+    destination: /share/backup/media/
+    args: "-a --progress --verbose --human-readable --itemize-changes"
 ```
 
 Mirror source to destination:
 
 ```yaml
-source: /share/important/
-destination: /share/backup/important/
 run_mode: once
 schedule_minutes: 60
-args: "-a --delete --verbose --human-readable --itemize-changes"
+jobs:
+  - source: /share/important/
+    destination: /share/backup/important/
+    args: "-a --delete --verbose --human-readable --itemize-changes"
 ```
 
 Preview only:
 
 ```yaml
-source: /share/documents/
-destination: /share/backup/documents/
 run_mode: once
 schedule_minutes: 60
-args: "-a --dry-run --progress --verbose --human-readable --itemize-changes"
+jobs:
+  - source: /share/documents/
+    destination: /share/backup/documents/
+    args: "-a --dry-run --progress --verbose --human-readable --itemize-changes"
 ```
 
 Scheduled sync every 6 hours:
 
 ```yaml
-source: /media/archive/
-destination: /share/backup/archive/
 run_mode: interval
 schedule_minutes: 360
-args: "-a --progress --verbose --human-readable --itemize-changes"
+jobs:
+  - source: /media/archive/
+    destination: /share/backup/archive/
+    args: "-a --progress --verbose --human-readable --itemize-changes"
+```
+
+Multiple sync jobs:
+
+```yaml
+run_mode: once
+schedule_minutes: 60
+jobs:
+  - source: /share/photos/
+    destination: /media/backup/photos/
+    args: "-rt --size-only --modify-window=2 --exclude thumbs --exclude encoded-video"
+  - source: /share/videos/
+    destination: /media/backup/videos/
+    args: "-rt --size-only --modify-window=2"
 ```
 
 ## Notes
@@ -108,3 +128,4 @@ args: "-a --progress --verbose --human-readable --itemize-changes"
 - The destination folder is created automatically if needed.
 - In `interval` mode the add-on stays running and repeats the sync forever.
 - The logs include the exact `rsync` command that was executed.
+- Each configured job runs sequentially in the order listed in `jobs`.

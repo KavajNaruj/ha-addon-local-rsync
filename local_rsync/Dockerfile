@@ -2,6 +2,7 @@ FROM ghcr.io/home-assistant/base:latest
 
 RUN apk add --no-cache \
     coreutils \
+    jq \
     rsync
 
 COPY run.sh /

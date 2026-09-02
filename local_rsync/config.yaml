@@ -18,14 +18,10 @@ map:
   - type: media
     read_only: false
 options:
-  source: "/share/source/"
-  destination: "/share/backup/"
   run_mode: "once"
   schedule_minutes: 60
-  args: "-rt --size-only --modify-window=2 --exclude thumbs --exclude encoded-video"
-schema:
-  source: "str"
-  destination: "str"
-  run_mode: "str"
-  schedule_minutes: "int"
-  args: "str"
+  jobs:
+    - source: "/share/source/"
+      destination: "/share/backup/"
+      args: "-rt --size-only --modify-window=2 --exclude thumbs --exclude encoded-video"
+schema: false
