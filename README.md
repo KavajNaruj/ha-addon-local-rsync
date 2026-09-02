@@ -35,6 +35,7 @@ This repository includes:
 
 - `.github/workflows/ci.yml` for syntax checks and Docker build verification
 - `.github/workflows/release.yml` for publishing multi-arch images to GHCR
+- `local_rsync/icon.png` and `local_rsync/logo.png` for Home Assistant store branding
 
 The release workflow is intended to publish `ghcr.io/kavajnaruj/local-rsync`
 when a GitHub release is published.

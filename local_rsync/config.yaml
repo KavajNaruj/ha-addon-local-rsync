@@ -20,8 +20,11 @@ map:
 options:
   run_mode: "once"
   schedule_minutes: 60
+  jobs: []
+schema:
+  run_mode: "list(once|interval)"
+  schedule_minutes: "int(1,)"
   jobs:
-    - source: "/share/source/"
-      destination: "/share/backup/"
-      args: "-rt --size-only --modify-window=2 --exclude thumbs --exclude encoded-video"
-schema: false
+    - source: "str"
+      destination: "str"
+      args: "str?"

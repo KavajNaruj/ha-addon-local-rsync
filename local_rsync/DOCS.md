@@ -45,6 +45,8 @@ jobs:
     args: "-rt --size-only --modify-window=2 --exclude thumbs --exclude encoded-video"
 ```
 
+If `jobs` is empty, the add-on will refuse to start until you add at least one job.
+
 ## Option reference
 
 - `run_mode`: `once` or `interval`
@@ -52,7 +54,7 @@ jobs:
 - `jobs`: array of sync jobs
 - `jobs[].source`: source folder under `/share` or `/media`
 - `jobs[].destination`: destination folder under `/share` or `/media`
-- `jobs[].args`: raw rsync arguments, for example `-a --delete --progress`
+- `jobs[].args`: optional raw rsync arguments, for example `-a --delete --progress`
 
 ## Trailing slash behavior
 
@@ -129,3 +131,4 @@ jobs:
 - In `interval` mode the add-on stays running and repeats the sync forever.
 - The logs include the exact `rsync` command that was executed.
 - Each configured job runs sequentially in the order listed in `jobs`.
+- The YAML editor is the most reliable way to edit `jobs`, because it is a list of objects.
