@@ -11,21 +11,6 @@ configuration:
   schedule_minutes:
     name: Schedule minutes
     description: Minutes between sync runs when interval mode is enabled
-  archive:
-    name: Archive mode
-    description: Enable rsync archive mode (`-a`)
-  delete:
-    name: Delete extra files
-    description: Remove files in destination that are not in source
-  checksum:
-    name: Checksum mode
-    description: Compare files using checksums
-  verbose:
-    name: Verbose logs
-    description: Enable more detailed rsync output
-  dry_run:
-    name: Dry run
-    description: Show changes without writing them
-  extra_args:
-    name: Extra rsync arguments
-    description: Additional raw rsync flags, for example `--progress`
+  args:
+    name: Rsync arguments
+    description: Raw rsync flags, for example `-a --delete --progress`

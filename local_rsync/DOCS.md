@@ -41,12 +41,7 @@ source: /share/source/
 destination: /share/backup/
 run_mode: once
 schedule_minutes: 60
-archive: true
-delete: false
-checksum: false
-verbose: true
-dry_run: false
-extra_args: ""
+args: "-rt --size-only --modify-window=2 --exclude thumbs --exclude encoded-video"
 ```
 
 ## Option reference
@@ -55,12 +50,12 @@ extra_args: ""
 - `destination`: destination folder under `/share` or `/media`
 - `run_mode`: `once` or `interval`
 - `schedule_minutes`: sync interval when `run_mode` is `interval`
-- `archive`: enables `-a`
-- `delete`: enables `--delete`
-- `checksum`: enables `--checksum`
-- `verbose`: enables readable logging flags
-- `dry_run`: enables `--dry-run`
-- `extra_args`: extra raw `rsync` flags, for example `--progress`
+- `args`: raw rsync arguments, for example `-a --delete --progress`
+
+## Trailing slash behavior
+
+If you set `source` or `destination` with a trailing `/`, the add-on preserves it
+when executing `rsync`. This matters because rsync treats these forms differently.
 
 ## Examples
 
@@ -71,12 +66,7 @@ source: /share/media/
 destination: /share/backup/media/
 run_mode: once
 schedule_minutes: 60
-archive: true
-delete: false
-checksum: false
-verbose: true
-dry_run: false
-extra_args: "--progress"
+args: "-a --progress --verbose --human-readable --itemize-changes"
 ```
 
 Mirror source to destination:
@@ -86,12 +76,7 @@ source: /share/important/
 destination: /share/backup/important/
 run_mode: once
 schedule_minutes: 60
-archive: true
-delete: true
-checksum: false
-verbose: true
-dry_run: false
-extra_args: ""
+args: "-a --delete --verbose --human-readable --itemize-changes"
 ```
 
 Preview only:
@@ -101,12 +86,7 @@ source: /share/documents/
 destination: /share/backup/documents/
 run_mode: once
 schedule_minutes: 60
-archive: true
-delete: false
-checksum: false
-verbose: true
-dry_run: true
-extra_args: "--progress"
+args: "-a --dry-run --progress --verbose --human-readable --itemize-changes"
 ```
 
 Scheduled sync every 6 hours:
@@ -116,12 +96,7 @@ source: /media/archive/
 destination: /share/backup/archive/
 run_mode: interval
 schedule_minutes: 360
-archive: true
-delete: false
-checksum: false
-verbose: true
-dry_run: false
-extra_args: "--progress"
+args: "-a --progress --verbose --human-readable --itemize-changes"
 ```
 
 ## Notes
@@ -132,3 +107,4 @@ extra_args: "--progress"
 - If the source path does not exist, the add-on stops with an error.
 - The destination folder is created automatically if needed.
 - In `interval` mode the add-on stays running and repeats the sync forever.
+- The logs include the exact `rsync` command that was executed.

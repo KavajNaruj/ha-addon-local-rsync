@@ -22,20 +22,10 @@ options:
   destination: "/share/backup/"
   run_mode: "once"
   schedule_minutes: 60
-  archive: true
-  delete: false
-  checksum: false
-  verbose: true
-  dry_run: false
-  extra_args: ""
+  args: "-rt --size-only --modify-window=2 --exclude thumbs --exclude encoded-video"
 schema:
   source: "str"
   destination: "str"
   run_mode: "str"
   schedule_minutes: "int"
-  archive: "bool"
-  delete: "bool"
-  checksum: "bool"
-  verbose: "bool"
-  dry_run: "bool"
-  extra_args: "str"
+  args: "str"

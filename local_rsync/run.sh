@@ -6,12 +6,7 @@ SOURCE="$(bashio::config 'source')"
 DESTINATION="$(bashio::config 'destination')"
 RUN_MODE="$(bashio::config 'run_mode')"
 SCHEDULE_MINUTES="$(bashio::config 'schedule_minutes')"
-ARCHIVE="$(bashio::config 'archive')"
-DELETE_FLAG="$(bashio::config 'delete')"
-CHECKSUM="$(bashio::config 'checksum')"
-VERBOSE="$(bashio::config 'verbose')"
-DRY_RUN="$(bashio::config 'dry_run')"
-EXTRA_ARGS="$(bashio::config 'extra_args')"
+ARGS="$(bashio::config 'args')"
 
 resolve_path() {
     realpath -m "$1"
@@ -26,6 +21,11 @@ ensure_local_media_path() {
     if [[ "$resolved" != /share/* ]] && [[ "$resolved" != "/share" ]] && [[ "$resolved" != /media/* ]] && [[ "$resolved" != "/media" ]]; then
         bashio::log.fatal "Path '$original' resolves outside /share or /media: $resolved"
         exit 1
+    fi
+
+    if [[ "$original" == */ ]]; then
+        printf '%s/\n' "${resolved%/}"
+        return
     fi
 
     printf '%s\n' "$resolved"
@@ -49,31 +49,20 @@ build_rsync_args() {
     declare -ga RSYNC_ARGS
     RSYNC_ARGS=()
 
-    if [[ "$ARCHIVE" == "true" ]]; then
-        RSYNC_ARGS+=("-a")
-    fi
-
-    if [[ "$DELETE_FLAG" == "true" ]]; then
-        RSYNC_ARGS+=("--delete")
-    fi
-
-    if [[ "$CHECKSUM" == "true" ]]; then
-        RSYNC_ARGS+=("--checksum")
-    fi
-
-    if [[ "$VERBOSE" == "true" ]]; then
-        RSYNC_ARGS+=("--verbose" "--human-readable" "--itemize-changes")
-    fi
-
-    if [[ "$DRY_RUN" == "true" ]]; then
-        RSYNC_ARGS+=("--dry-run")
-    fi
-
-    if [[ -n "$EXTRA_ARGS" ]]; then
-        # User-provided extra rsync flags are split as shell words.
-        read -r -a EXTRA_WORDS <<< "$EXTRA_ARGS"
+    if [[ -n "$ARGS" ]]; then
+        # User-provided rsync flags are split as shell words.
+        read -r -a EXTRA_WORDS <<< "$ARGS"
         RSYNC_ARGS+=("${EXTRA_WORDS[@]}")
     fi
+}
+
+log_rsync_command() {
+    declare -a command
+    local quoted
+
+    command=("rsync" "${RSYNC_ARGS[@]}" "$1" "$2")
+    printf -v quoted '%q ' "${command[@]}"
+    bashio::log.info "Command: ${quoted% }"
 }
 
 run_sync() {
@@ -94,6 +83,7 @@ run_sync() {
     bashio::log.info "Source: $source_path"
     bashio::log.info "Destination: $destination_path"
     bashio::log.info "Flags: ${RSYNC_ARGS[*]:-(none)}"
+    log_rsync_command "$source_path" "$destination_path"
 
     rsync "${RSYNC_ARGS[@]}" "$source_path" "$destination_path"
 

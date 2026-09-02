@@ -46,4 +46,4 @@ on the Home Assistant host instead of pulling a prebuilt image.
 
 - This add-on is intentionally limited to local filesystem sync.
 - Source and destination must resolve under `/share` or `/media`.
-- Extra flags are supported for advanced `rsync` use cases.
+- All rsync flags are provided through a single `args` option.
