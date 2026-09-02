@@ -17,6 +17,11 @@ The add-on can either:
 - run one `rsync` command and exit
 - stay running and repeat the sync on a fixed interval
 
+## Installation note
+
+This add-on is currently set up for local building by Home Assistant during
+installation. That is useful before publishing a release image to GHCR.
+
 ## Path restrictions
 
 For safety, both `source` and `destination` must resolve under `/share` or `/media`.

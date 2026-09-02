@@ -39,6 +39,9 @@ This repository includes:
 The release workflow is intended to publish `ghcr.io/kavajnaruj/local-rsync`
 when a GitHub release is published.
 
+For early testing in Home Assistant, the add-on is configured to build locally
+on the Home Assistant host instead of pulling a prebuilt image.
+
 ## Notes
 
 - This add-on is intentionally limited to local filesystem sync.

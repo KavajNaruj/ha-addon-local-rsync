@@ -12,7 +12,6 @@ arch:
   - armhf
   - armv7
   - i386
-image: "ghcr.io/kavajnaruj/local-rsync"
 map:
   - type: share
     read_only: false
