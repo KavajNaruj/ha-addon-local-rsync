@@ -1,0 +1,42 @@
+name: "Local Rsync"
+version: "0.1.0"
+slug: "local_rsync"
+description: "Run rsync between two local folders inside Home Assistant"
+url: "https://github.com/KavajNaruj/ha-addon-local-rsync"
+startup: "services"
+boot: "auto"
+init: false
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+image: "ghcr.io/kavajnaruj/local-rsync"
+map:
+  - type: share
+    read_only: false
+  - type: media
+    read_only: false
+options:
+  source: "/share/source/"
+  destination: "/share/backup/"
+  run_mode: "once"
+  schedule_minutes: 60
+  archive: true
+  delete: false
+  checksum: false
+  verbose: true
+  dry_run: false
+  extra_args: ""
+schema:
+  source: "str"
+  destination: "str"
+  run_mode: "str"
+  schedule_minutes: "int"
+  archive: "bool"
+  delete: "bool"
+  checksum: "bool"
+  verbose: "bool"
+  dry_run: "bool"
+  extra_args: "str"

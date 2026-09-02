@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate shell script syntax
+        run: bash -n local_rsync/run.sh
+
+      - name: Validate add-on metadata files exist
+        run: |
+          test -f repository.yaml
+          test -f local_rsync/config.yaml
+          test -f local_rsync/Dockerfile
+          test -f local_rsync/run.sh
+          test -f local_rsync/DOCS.md
+
+      - name: Build container locally
+        run: docker build -t local-rsync-test ./local_rsync
