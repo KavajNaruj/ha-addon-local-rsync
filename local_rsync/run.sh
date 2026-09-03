@@ -297,10 +297,10 @@ run_all_sync_jobs() {
 
 trap 'handle_exit $?' EXIT
 STARTED_AT="$(iso_timestamp)"
-record_status "running" "Local Rsync addon started" 0
 validate_mode
 validate_schedule_minutes
 validate_jobs
+record_status "running" "Local Rsync addon started" 0
 
 if [[ "$RUN_MODE" == "once" ]]; then
     bashio::log.info "Run mode: once"
