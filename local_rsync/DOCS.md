@@ -132,3 +132,5 @@ jobs:
 - The logs include the exact `rsync` command that was executed.
 - Each configured job runs sequentially in the order listed in `jobs`.
 - The YAML editor is the most reliable way to edit `jobs`, because it is a list of objects.
+- The add-on stores the last result in `/data/last_run.json`.
+- The add-on also updates `sensor.local_rsync_last_run` in Home Assistant with `running`, `success`, or `error`.

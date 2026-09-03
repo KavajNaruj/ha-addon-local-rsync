@@ -3,11 +3,163 @@
 set -euo pipefail
 
 CONFIG_PATH=/data/options.json
+STATUS_PATH=/data/last_run.json
+STATE_ENTITY_ID=sensor.local_rsync_last_run
 RUN_MODE="$(jq -r '.run_mode // "once"' "$CONFIG_PATH")"
 SCHEDULE_MINUTES="$(jq -r '.schedule_minutes // 60' "$CONFIG_PATH")"
+STARTED_AT=""
+FINISHED_AT=""
+LAST_STATUS="idle"
+LAST_SUMMARY=""
+LAST_RETURN_CODE=0
+LAST_FAILED_JOB_INDEX=""
+JOBS_TOTAL=0
+JOBS_COMPLETED=0
+LAST_COMMAND=""
 
 resolve_path() {
     realpath -m "$1"
+}
+
+iso_timestamp() {
+    date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
+status_icon() {
+    case "$1" in
+        running) printf "mdi:sync" ;;
+        success) printf "mdi:check-circle" ;;
+        error) printf "mdi:alert-circle" ;;
+        *) printf "mdi:clock-outline" ;;
+    esac
+}
+
+write_status_file() {
+    local status="$1"
+    local summary="$2"
+    local return_code="$3"
+    local failed_job_index="$4"
+    local output
+
+    output="$(
+        jq -n \
+            --arg status "$status" \
+            --arg summary "$summary" \
+            --arg started_at "$STARTED_AT" \
+            --arg finished_at "$FINISHED_AT" \
+            --arg run_mode "$RUN_MODE" \
+            --arg last_command "$LAST_COMMAND" \
+            --argjson return_code "$return_code" \
+            --argjson jobs_total "$JOBS_TOTAL" \
+            --argjson jobs_completed "$JOBS_COMPLETED" \
+            --arg failed_job_index "$failed_job_index" \
+            '
+            {
+              status: $status,
+              summary: $summary,
+              started_at: $started_at,
+              finished_at: $finished_at,
+              run_mode: $run_mode,
+              return_code: $return_code,
+              jobs_total: $jobs_total,
+              jobs_completed: $jobs_completed,
+              last_command: $last_command
+            }
+            + (if $failed_job_index == "" then {} else {failed_job_index: ($failed_job_index | tonumber)} end)
+            '
+    )"
+
+    printf '%s\n' "$output" > "$STATUS_PATH"
+}
+
+publish_state() {
+    local status="$1"
+    local summary="$2"
+    local return_code="$3"
+    local failed_job_index="$4"
+    local payload
+
+    payload="$(
+        jq -n \
+            --arg state "$status" \
+            --arg friendly_name "Local Rsync Last Run" \
+            --arg icon "$(status_icon "$status")" \
+            --arg summary "$summary" \
+            --arg started_at "$STARTED_AT" \
+            --arg finished_at "$FINISHED_AT" \
+            --arg run_mode "$RUN_MODE" \
+            --arg last_command "$LAST_COMMAND" \
+            --argjson return_code "$return_code" \
+            --argjson jobs_total "$JOBS_TOTAL" \
+            --argjson jobs_completed "$JOBS_COMPLETED" \
+            --arg failed_job_index "$failed_job_index" \
+            '
+            {
+              state: $state,
+              attributes: {
+                friendly_name: $friendly_name,
+                icon: $icon,
+                summary: $summary,
+                started_at: $started_at,
+                finished_at: $finished_at,
+                run_mode: $run_mode,
+                return_code: $return_code,
+                jobs_total: $jobs_total,
+                jobs_completed: $jobs_completed,
+                last_command: $last_command
+              }
+            }
+            | if $failed_job_index == "" then . else .attributes.failed_job_index = ($failed_job_index | tonumber) end
+            '
+    )"
+
+    curl -sS \
+        -X POST \
+        -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d "$payload" \
+        "http://supervisor/core/api/states/${STATE_ENTITY_ID}" \
+        >/dev/null || bashio::log.warning "Failed to publish Home Assistant state"
+}
+
+record_status() {
+    local status="$1"
+    local summary="$2"
+    local return_code="$3"
+    local failed_job_index="${4:-}"
+
+    LAST_STATUS="$status"
+    LAST_SUMMARY="$summary"
+    LAST_RETURN_CODE="$return_code"
+    LAST_FAILED_JOB_INDEX="$failed_job_index"
+
+    write_status_file "$status" "$summary" "$return_code" "$failed_job_index"
+    publish_state "$status" "$summary" "$return_code" "$failed_job_index"
+}
+
+handle_exit() {
+    local exit_code="$1"
+
+    if [[ -z "$STARTED_AT" ]]; then
+        exit "$exit_code"
+    fi
+
+    FINISHED_AT="$(iso_timestamp)"
+
+    if (( exit_code == 0 )); then
+        if [[ "$RUN_MODE" == "interval" ]]; then
+            record_status "success" "Sync cycle finished successfully" 0
+        elif [[ "$LAST_STATUS" == "running" ]]; then
+            record_status "success" "All rsync jobs finished successfully" 0
+        fi
+        exit 0
+    fi
+
+    if [[ "$LAST_STATUS" == "running" ]]; then
+        record_status "error" "Addon exited with an error" "$exit_code" "$LAST_FAILED_JOB_INDEX"
+    fi
+
+    exit "$exit_code"
 }
 
 ensure_local_media_path() {
@@ -57,6 +209,8 @@ validate_jobs() {
         bashio::log.fatal "jobs must contain at least one item"
         exit 1
     fi
+
+    JOBS_TOTAL="$jobs_count"
 }
 
 build_rsync_args() {
@@ -78,6 +232,7 @@ log_rsync_command() {
 
     command=("rsync" "${RSYNC_ARGS[@]}" "$1" "$2")
     printf -v quoted '%q ' "${command[@]}"
+    LAST_COMMAND="${quoted% }"
     bashio::log.info "Command: ${quoted% }"
 }
 
@@ -116,8 +271,17 @@ run_sync_job() {
     bashio::log.info "Flags: ${RSYNC_ARGS[*]:-(none)}"
     log_rsync_command "$source_path" "$destination_path"
 
-    rsync "${RSYNC_ARGS[@]}" "$source_path" "$destination_path"
+    if rsync "${RSYNC_ARGS[@]}" "$source_path" "$destination_path"; then
+        :
+    else
+        local exit_code=$?
+        FINISHED_AT="$(iso_timestamp)"
+        LAST_FAILED_JOB_INDEX="$job_index"
+        record_status "error" "Rsync job $job_index failed" "$exit_code" "$job_index"
+        exit "$exit_code"
+    fi
 
+    JOBS_COMPLETED=$((JOBS_COMPLETED + 1))
     bashio::log.info "Rsync job $job_index finished successfully"
 }
 
@@ -131,6 +295,9 @@ run_all_sync_jobs() {
     done
 }
 
+trap 'handle_exit $?' EXIT
+STARTED_AT="$(iso_timestamp)"
+record_status "running" "Local Rsync addon started" 0
 validate_mode
 validate_schedule_minutes
 validate_jobs
@@ -145,7 +312,15 @@ bashio::log.info "Run mode: interval"
 bashio::log.info "Sync interval: ${SCHEDULE_MINUTES} minute(s)"
 
 while true; do
+    STARTED_AT="$(iso_timestamp)"
+    FINISHED_AT=""
+    JOBS_COMPLETED=0
+    LAST_FAILED_JOB_INDEX=""
+    LAST_COMMAND=""
+    record_status "running" "Sync cycle started" 0
     run_all_sync_jobs
+    FINISHED_AT="$(iso_timestamp)"
+    record_status "success" "Sync cycle finished successfully" 0
     bashio::log.info "Sleeping for ${SCHEDULE_MINUTES} minute(s)"
     sleep "$((SCHEDULE_MINUTES * 60))"
 done
